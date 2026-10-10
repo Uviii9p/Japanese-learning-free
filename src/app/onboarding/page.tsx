@@ -10,21 +10,61 @@ const SAKURA_PETALS = ['🌸', '🌺', '🌸', '🌸', '🌺'];
 
 function SakuraBackground() {
   return (
-    <div className="sakura-bg" aria-hidden="true">
-      {Array.from({ length: 12 }).map((_, i) => (
+    <div
+      className="sakura-bg"
+      aria-hidden="true"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        pointerEvents: 'none',
+        overflow: 'hidden',
+        zIndex: 0,
+      }}
+    >
+      {Array.from({ length: 14 }).map((_, i) => (
         <div
           key={i}
           className="sakura-petal"
           style={{
-            left: `${(i * 9 + 3) % 100}%`,
-            animationDuration: `${8 + (i * 1.3) % 6}s`,
-            animationDelay: `${(i * 0.7) % 5}s`,
-            fontSize: `${0.7 + (i * 0.15) % 0.6}rem`,
+            position: 'absolute',
+            top: '-30px',
+            left: `${(i * 7.2 + 2) % 96}%`,
+            fontSize: `${0.85 + (i * 0.12) % 0.65}rem`,
+            animationName: 'sakura-fall',
+            animationDuration: `${7 + (i * 1.4) % 7}s`,
+            animationDelay: `${(i * 0.65) % 5}s`,
+            animationTimingFunction: 'linear',
+            animationIterationCount: 'infinite',
+            opacity: 0.65,
+            willChange: 'transform, opacity',
+            userSelect: 'none',
+            filter: 'drop-shadow(0 2px 6px rgba(217,49,83,0.25))',
           }}
         >
           {SAKURA_PETALS[i % SAKURA_PETALS.length]}
         </div>
       ))}
+      <style>{`
+        @keyframes sakura-fall {
+          0% {
+            transform: translateY(0) translateX(0) rotate(0deg);
+            opacity: 0;
+          }
+          15% {
+            opacity: 0.85;
+          }
+          50% {
+            transform: translateY(52vh) translateX(28px) rotate(180deg);
+          }
+          85% {
+            opacity: 0.8;
+          }
+          100% {
+            transform: translateY(106vh) translateX(-20px) rotate(360deg);
+            opacity: 0;
+          }
+        }
+      `}</style>
     </div>
   );
 }
