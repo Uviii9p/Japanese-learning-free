@@ -169,7 +169,7 @@ function parseCorrectionBlock(text: string): { cleanText: string; correction?: {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { messages = [], provider = 'auto', apiKey = '' } = body;
+    const { messages = [], provider = 'auto', apiKey = '', scenario = '' } = body;
 
     const lastMessage = messages[messages.length - 1];
     const userPrompt = lastMessage?.content || '';
@@ -231,8 +231,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Fallback: Built-in Sensei Linguistic Engine
-    const senseiResult = querySenseiEngine(userPrompt);
+    // Fallback: Built-in Sensei Linguistic Engine with Scenario Support
+    const senseiResult = querySenseiEngine(userPrompt, scenario);
     return NextResponse.json({
       text: senseiResult.text + jishoInfo,
       correction: senseiResult.correction,

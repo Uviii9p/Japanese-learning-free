@@ -273,7 +273,7 @@ function checkGrammarMistakes(input: string): SenseiResponse | null {
 /**
  * Main query processor of the built-in Sensei Engine
  */
-export function querySenseiEngine(userInput: string): SenseiResponse {
+export function querySenseiEngine(userInput: string, scenario?: string): SenseiResponse {
   const q = userInput.trim().toLowerCase();
 
   // 1. First check if user submitted a sentence with a detectable grammar mistake
@@ -407,7 +407,13 @@ Type your translation here and I'll check it for you! 😊`,
     };
   }
 
-  // 8. If the user wrote Japanese text that didn't trigger any errors
+  // 8. Scenario-based Roleplay Handling (Conbini, Ramen, Station, Cafe)
+  if (scenario) {
+    const roleplay = handleRoleplayScenario(scenario, userInput);
+    if (roleplay) return roleplay;
+  }
+
+  // 9. If the user wrote Japanese text that didn't trigger any errors
   if (/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(userInput)) {
     return {
       text: `素晴らしい！(Subarashii! — "Wonderful!") 🌟\n\nYour Japanese sentence: **「${userInput}」** looks well-structured and natural!\n\nKeep practicing! Would you like me to give you a similar sentence to try, or do you have any questions about the vocabulary used?`,
@@ -416,9 +422,155 @@ Type your translation here and I'll check it for you! 😊`,
     };
   }
 
-  // 9. Default helpful conversational response
+  // 10. Default helpful conversational response
   return {
     text: `こんにちは！I heard: *"${userInput}"*\n\nAs your Japanese Tutor, I'm here to help you master Japanese from zero to N1! You can ask me:\n• *"Explain は vs が"* or other particle rules\n• *"How do I say [phrase] in Japanese?"*\n• Type any Japanese sentence and I will analyze and correct it\n\n💡 *Tip: You can also connect your free Google Gemini or Groq API key in the AI Settings header for full, unrestricted AI conversation!*`,
     suggestions: ['Explain は vs が', 'How to use に vs で?', 'How to say "Where is the station?"', 'Give me an N5 challenge']
   };
+}
+
+/**
+ * Handles realistic offline multi-turn conversation roleplay
+ */
+function handleRoleplayScenario(scenario: string, input: string): SenseiResponse | null {
+  const text = input.trim();
+
+  if (scenario === 'conbini') {
+    if (/温め|温かい|はい|お願い/i.test(text)) {
+      return {
+        text: `かしこまりました！温めますね。少々お待ちください…\n(Kashikomarimashita! Atatamemasu ne. Shoushou omachi kudasai...)\n\n…はい、お待たせいたしました！熱いのでお気をつけください。お箸はお付けしますか？\n(...Hai, omatase itashimashita! Atsui node okiotsuke kudasai. Ohashi wa otsuke shimasu ka?)`,
+        japaneseAudio: 'かしこまりました！温めますね。少々お待ちください。お箸はお付けしますか？',
+        suggestions: ['お箸をください', 'いいえ、大丈夫です', '袋をお願いします']
+      };
+    }
+    if (/いいえ|大丈夫|結構/i.test(text)) {
+      return {
+        text: `かしこまりました！レジ袋にお入れしますか？（袋は1枚5円になります）\n(Kashikomarimashita! Rejibukuro ni oire shimasu ka?)\n"Understood! Would you like a shopping bag? (Bags are 5 yen each)"`,
+        japaneseAudio: 'かしこまりました！レジ袋にお入れしますか？',
+        suggestions: ['袋はいりません', '袋を1枚お願いします', 'Suicaで払います']
+      };
+    }
+    if (/箸|スプーン|フォーク/i.test(text)) {
+      return {
+        text: `はい！お箸を一膳お付けしますね。\n(Hai! Ohashi wo ichizen otsuke shimasu ne.)\n\nお会計は合計で680円になります。お支払いは現金ですか、それとも交通系ICカード（Suicaなど）でしょうか？\n(Okaikei wa goukei de roppyaku-hachijuu en ni narimasu. O-shiharai wa genkin desu ka?)`,
+        japaneseAudio: 'はい！お箸を一膳お付けしますね。お会計は680円になります。',
+        suggestions: ['Suicaで払います', '現金でお願いします', 'PayPayでお願いします']
+      };
+    }
+    if (/袋はいりません|いらない|大丈夫/i.test(text)) {
+      return {
+        text: `かしこまりました！商品にシールをお貼りしますね。\n(Kashikomarimashita! Shouhin ni shiiru wo ohari shimasu ne.)\n\nピッ！お会計750円になります。レシートはご利用ですか？\n(Pi! Okaikei nanahyaku gojuu en ni narimasu. Reshiito wa goriyou desu ka?)`,
+        japaneseAudio: 'かしこまりました！商品にシールをお貼りしますね。お会計750円になります。',
+        suggestions: ['現金でお願いします', 'Suicaで払います', 'レシートは大丈夫です']
+      };
+    }
+    if (/現金|suica|スイカ|カード|paypay|払/i.test(text)) {
+      return {
+        text: `ピピッ！お支払い完了いたしました！ありがとうございます！\n(Pipi! O-shiharai kanryou itashimashita! Arigatou gozaimasu!)\n\nレシートと商品のお渡しになります。またお越しくださいませ！😊\n(Reshiito to shouhin no owatashi ni narimasu. Mata okoshi kudasai mase!)`,
+        japaneseAudio: 'お支払い完了いたしました！ありがとうございました！またお越しくださいませ！',
+        suggestions: ['ありがとう！', 'ごちそうさま！', 'さようなら']
+      };
+    }
+    return {
+      text: `いらっしゃいませ！コンビニへようこそ！\n(Irasshaimase! Conbini e youkoso!)\n\nこちらのお弁当、温めますか？\n(Kochira no obentou, atatamemasu ka?)`,
+      japaneseAudio: 'いらっしゃいませ！温めますか？',
+      suggestions: ['はい、お願いします', 'いいえ、大丈夫です', 'お箸をください']
+    };
+  }
+
+  if (scenario === 'ramen') {
+    if (/醤油|しょうゆ/i.test(text)) {
+      return {
+        text: `へい、いらっしゃい！当店一番人気の醤油ラーメン一丁！🍜\n(Hei, irasshai! Touten ichiban ninki no shouyu raamen itchou!)\n\n麺のかたさはどうしましょう？「かため」「普通」「柔らかめ」から選べますよ！\n(Men no katasa wa dou shimashou? Katame, futsuu, yawarakame kara erabemasu yo!)`,
+        japaneseAudio: 'へい、いらっしゃい！醤油ラーメン一丁！麺のかたさはどうしましょう？',
+        suggestions: ['麺は固めでお願いします', '普通でお願いします', 'チャーシュー追加できますか？']
+      };
+    }
+    if (/味噌|みそ/i.test(text)) {
+      return {
+        text: `おっ、味噌ラーメンね！うちの特製焦がし味噌スープは濃厚で体が温まるぞ！🔥\n(Oh, miso raamen ne! Uchi no tokusei kogashi miso suupu wa noukou de karada ga atatamaru zo!)\n\n麺のかたさは「かため」にするかい？それとも「普通」？`,
+        japaneseAudio: 'おっ、味噌ラーメンね！麺のかたさはどうしましょう？',
+        suggestions: ['麺は固めでお願いします', '煮玉子をつけてください', '普通でお願いします']
+      };
+    }
+    if (/固め|かため|普通|柔らかめ/i.test(text)) {
+      return {
+        text: `了解！麺${text}ね！すぐ茹で上がるからちょっと待っててくれよな！\n(Ryoukai! Sugu yudeagaru kara chotto mattete kure yo na!)\n\n餃子や生ビールも冷えてるけど、一緒にどうだい？🍺`,
+        japaneseAudio: '了解！すぐ茹で上がるからちょっと待っててくれよな！餃子もいかがですか？',
+        suggestions: ['餃子もお願いします', 'ラーメンだけで大丈夫です', 'お水をおかわりください']
+      };
+    }
+    if (/チャーシュー|卵|玉子|トッピング/i.test(text)) {
+      return {
+        text: `もちろん！特製豚バラチャーシュー3枚と半熟味玉トッピングね！トロットロで最高だぞ！\n(Mochiron! Tokusei butabara chaashuu to hanjuku ajitama toppingu ne!)\n\nへいお待ち！熱々のラーメン、どうぞ召し上がれ！`,
+        japaneseAudio: 'もちろん！トッピング追加ね！へいお待ち、熱いから気をつけて！',
+        suggestions: ['いただきます！', 'すごくおいしそうです！', 'お会計をお願いします']
+      };
+    }
+    if (/いただき|おいしい|美味/i.test(text)) {
+      return {
+        text: `おう、喜んでもらえて嬉しいよ！スープまで飲み干してくれてありがとな！\n(Ou, yorokonde moraete ureshii yo!)\n\nお会計は950円だ。また腹が減ったら寄ってくれよな！`,
+        japaneseAudio: '喜んでもらえて嬉しいよ！また腹が減ったら寄ってくれよな！',
+        suggestions: ['ごちそうさまでした！', 'また来ます！']
+      };
+    }
+    return {
+      text: `へい、いらっしゃい！空いてるカウンター席へどうぞ！\n(Hei, irasshai! Aiteru kauntaa-seki e douzo!)\n\nご注文はお決まりですか？うちの特製ラーメンは最高ですよ！`,
+      japaneseAudio: 'へい、いらっしゃい！ご注文はお決まりですか？',
+      suggestions: ['醤油ラーメンをください', '味噌ラーメンにします', '麺は固めでお願いします']
+    };
+  }
+
+  if (scenario === 'station') {
+    if (/東京|新宿|渋谷|京都|駅/i.test(text)) {
+      return {
+        text: `はい、東京駅ですね！JR山手線（外回り・内回り）で約20分、運賃は210円になります。\n(Hai, Toukyou-eki desu ne! JR Yamanote-sen de yaku nijuppun, unchin wa nihyaku juu en ni narimasu.)\n\n切符をお求めですか、それともICカード（Suica / PASMO）をお持ちでしょうか？`,
+        japaneseAudio: 'はい、東京駅ですね。JR山手線で約20分、運賃は210円になります。',
+        suggestions: ['何番線ですか？', 'Suicaを持っています', '乗り換えはありますか？']
+      };
+    }
+    if (/何番線|ホーム|どこ/i.test(text)) {
+      return {
+        text: `東京駅方面は**2番線ホーム**になります！緑色の山手線にご乗車ください。\n(Toukyou-eki houmen wa ni-bansen hoomu ni narimasu! Midori-iro no Yamanote-sen ni go-jousha kudasai.)\n\nあちらのエスカレーターを上がって右側ですよ！お気をつけていってらっしゃいませ！`,
+        japaneseAudio: '東京駅方面は2番線ホームになります。エスカレーターを上がって右側ですよ。',
+        suggestions: ['ありがとうございます！', '乗り換えはありますか？', '切符はどこで買えますか？']
+      };
+    }
+    if (/乗り換え|直通/i.test(text)) {
+      return {
+        text: `山手線は環状線ですので、**乗り換えなしで一本**で行けますよ！ご安心ください。\n(Yamanote-sen wa kanjou-sen desu node, norikae nashi de ippon de ikemasu yo!)\n\n約3分間隔で電車が参ります。`,
+        japaneseAudio: '乗り換えなしで一本で行けますよ！ご安心ください。',
+        suggestions: ['助かりました、ありがとう！', '何番線ですか？']
+      };
+    }
+    return {
+      text: `いらっしゃいませ。駅員です。どちらまで行かれますか？お手伝いいたします！\n(Irasshaimase. Ekiin desu. Dochira made ikaremasu ka?)`,
+      japaneseAudio: 'いらっしゃいませ。どちらまで行かれますか？',
+      suggestions: ['東京駅までお願いします', '切符はいくらですか？', '何番線ですか？']
+    };
+  }
+
+  if (scenario === 'cafe') {
+    if (/抹茶|ラテ|お茶/i.test(text)) {
+      return {
+        text: `かしこまりました。京都宇治の挽きたて抹茶ですね。🍵\n(Kashikomarimashita. Kyouto Uji no hikitate matcha desu ne.)\n\n温かいお抹茶と、冷たいアイス抹茶ラテがございますが、どちらにいたしましょうか？`,
+        japaneseAudio: 'かしこまりました。温かいお抹茶と冷たいラテ、どちらにいたしましょうか？',
+        suggestions: ['温かい抹茶をお願いします', 'アイスラテにします', '和菓子はありますか？']
+      };
+    }
+    if (/和菓子|スイーツ|ケーキ|団子/i.test(text)) {
+      return {
+        text: `本日の季節の和菓子は、職人手作りの「桜練り切り」と「わらび餅」がございます。🌸\n(Honjitsu no kisetsu no wagashi wa, shokunin tezukuri no 'sakura nerikiri' to 'warabimochi' ga gozaimasu.)\n\n抹茶の程よい苦味と甘い和菓子の組み合わせは格別ですよ。いかがですか？`,
+        japaneseAudio: '本日の季節の和菓子は、桜練り切りとわらび餅がございます。',
+        suggestions: ['桜練り切りをお願いします', 'おすすめは何ですか？', 'お会計をお願いします']
+      };
+    }
+    return {
+      text: `いらっしゃいませ。古都・京都の喫茶室へようこそ。お好きなお席へどうぞ。\n(Irasshaimase. Koto Kyouto no kissashitsu e youkoso.)\n\n本日はとても上質な新茶が入っておりますよ。`,
+      japaneseAudio: 'いらっしゃいませ。お好きなお席へどうぞ。',
+      suggestions: ['抹茶をお願いします', 'おすすめは何ですか？', '和菓子はありますか？']
+    };
+  }
+
+  return null;
 }

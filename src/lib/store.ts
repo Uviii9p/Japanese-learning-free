@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { useEffect, useState } from 'react';
 import { getXPLevel } from '@/content/courses';
 
 export interface UserProgress {
@@ -297,6 +298,7 @@ export const useAppStore = create<AppStore>()(
     }),
     {
       name: 'japanese-mastery-store',
+      storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         ...state,
         // Exclude computed/transient values
@@ -304,3 +306,34 @@ export const useAppStore = create<AppStore>()(
     }
   )
 );
+
+/**
+ * Returns true after Zustand's persist middleware has finished rehydrating
+ * from localStorage. Use this to avoid premature redirects before the
+ * persisted state (e.g. onboardingComplete) is available.
+ */
+export function useHydrated(): boolean {
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (useAppStore.persist?.hasHydrated?.()) {
+      setHydrated(true);
+      return;
+    }
+    const unsub = useAppStore.persist?.onFinishHydration?.(() => {
+      setHydrated(true);
+    });
+    // Fallback: Ensure hydrated is always true after a short delay so user is never stuck
+    const timer = setTimeout(() => {
+      setHydrated(true);
+    }, 200);
+
+    return () => {
+      unsub?.();
+      clearTimeout(timer);
+    };
+  }, []);
+
+  return hydrated;
+}
